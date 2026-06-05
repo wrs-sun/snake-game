@@ -131,6 +131,60 @@
             font-weight: 600;
         }
 
+        .speed-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .speed-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .speed-label.slow { color: #ffaa44; }
+        .speed-label.fast { color: #ff4466; }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 180px;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #ffaa44, #00ff88, #ff4466);
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 12px rgba(0, 255, 136, 0.5);
+            transition: transform 0.15s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .speed-value {
+            color: #00ff88;
+            font-size: 13px;
+            font-weight: 700;
+            min-width: 36px;
+            text-align: center;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -172,6 +226,12 @@
             <canvas id="gameCanvas"></canvas>
             <div class="game-over-text" id="gameOverText">游戏结束!</div>
         </div>
+        <div class="speed-control">
+            <span class="speed-label slow">🐢 慢</span>
+            <input type="range" id="speedSlider" min="40" max="200" value="95" step="5">
+            <span class="speed-label fast">快 🐇</span>
+            <span class="speed-value" id="speedValue">中</span>
+        </div>
         <div class="controls-info">
             使用 <span>↑</span> <span>↓</span> <span>←</span> <span>→</span> 或 <span>W A S D</span> 控制方向 · <span>空格</span> 重新开始
         </div>
@@ -185,13 +245,14 @@
             const bestScoreEl = document.getElementById('bestScore');
             const gameOverText = document.getElementById('gameOverText');
             const restartBtn = document.getElementById('restartBtn');
+            const speedSlider = document.getElementById('speedSlider');
+            const speedValue = document.getElementById('speedValue');
 
             // 游戏配置
-            const GRID_SIZE = 20;
             const CELL_SIZE = 22;
-            const COLS = 20;
-            const ROWS = 20;
-            const GAME_SPEED = 95; // 毫秒
+            const COLS = 28;
+            const ROWS = 28;
+            let GAME_SPEED = 95; // 毫秒，动态可调
 
             canvas.width = COLS * CELL_SIZE;
             canvas.height = ROWS * CELL_SIZE;
@@ -208,12 +269,27 @@
             let particles = [];
             let animationFrame = null;
 
-            // 从 localStorage 读取最高分
+            // 从 localStorage 读取最高分和速度设置
             try {
                 bestScore = parseInt(localStorage.getItem('snakeBestScore')) || 0;
                 bestScoreEl.textContent = bestScore;
+                const savedSpeed = parseInt(localStorage.getItem('snakeSpeed'));
+                if (savedSpeed >= 40 && savedSpeed <= 200) {
+                    GAME_SPEED = savedSpeed;
+                    speedSlider.value = savedSpeed;
+                }
             } catch (e) {
                 bestScore = 0;
+            }
+            updateSpeedLabel();
+
+            function updateSpeedLabel() {
+                const val = parseInt(speedSlider.value);
+                if (val <= 60) speedValue.textContent = '极快';
+                else if (val <= 85) speedValue.textContent = '快';
+                else if (val <= 120) speedValue.textContent = '中';
+                else if (val <= 160) speedValue.textContent = '慢';
+                else speedValue.textContent = '极慢';
             }
 
             // 颜色主题
@@ -526,6 +602,7 @@
                     animationFrame = null;
                 }
 
+                GAME_SPEED = parseInt(speedSlider.value);
                 initGame();
                 gameRunning = true;
                 gameLoop = setInterval(gameTick, GAME_SPEED);
@@ -592,6 +669,20 @@
 
             // 重新开始按钮
             restartBtn.addEventListener('click', startGame);
+
+            // 速度调节滑块
+            speedSlider.addEventListener('input', () => {
+                updateSpeedLabel();
+                try {
+                    localStorage.setItem('snakeSpeed', speedSlider.value);
+                } catch (e) {}
+                // 如果在游戏进行中，实时更新速度
+                if (gameRunning) {
+                    clearInterval(gameLoop);
+                    GAME_SPEED = parseInt(speedSlider.value);
+                    gameLoop = setInterval(gameTick, GAME_SPEED);
+                }
+            });
 
             // 触摸支持（移动端）
             let touchStartX = 0;
