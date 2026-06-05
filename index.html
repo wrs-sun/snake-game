@@ -229,11 +229,11 @@
             };
 
             function initGame() {
-                // 初始蛇：中间偏左，长度4
+                // 初始蛇：中间偏左，长度4，snake[0] = 蛇头（最右边）
                 const startX = Math.floor(COLS / 2) - 2;
                 const startY = Math.floor(ROWS / 2);
                 snake = [];
-                for (let i = 0; i < 4; i++) {
+                for (let i = 3; i >= 0; i--) {
                     snake.push({ x: startX + i, y: startY });
                 }
                 direction = { x: 1, y: 0 };
